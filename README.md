@@ -1,4 +1,4 @@
-# hex.mk
+# hexpm.mk
 
 A plugins for [erlang.mk](http://erlang.mk) to use hex dependencies.
 
