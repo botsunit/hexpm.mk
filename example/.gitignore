@@ -1,0 +1,9 @@
+lib/
+mix.exs
+.erlang.mk/
+deps/
+ebin/
+example.d
+*.swp
+mix.lock
+
