@@ -17,7 +17,7 @@ BUILD_DEPS = hexpm.mk
 dep_hexpm.mk = git https://github.com/botsunit/mix.mk.git master
 
 DEPS = jsx
-dep_jsx = hexpm ~> 2.6.0
+dep_jsx = hex ~> 2.6.0
 
 include erlang.mk
 ```

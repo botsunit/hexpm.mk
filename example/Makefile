@@ -9,7 +9,7 @@ ELIXIR_VERSION = ~> 1.2
 dep_mix.mk = git https://github.com/botsunit/mix.mk.git master
 
 DEPS = cowboy jsx
-dep_jsx = hexpm ~> 2.6.0
+dep_jsx = hex ~> 2.6.0
 
 include erlang.mk
 include ../plugins.mk

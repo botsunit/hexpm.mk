@@ -236,6 +236,18 @@ endef
 define dep_fetch_hexpm
 	$(call erlang,$(call dep_fetch_hexpm.erl,$(1),$(strip $(wordlist 2,$(words $(dep_$(1))),$(dep_$(1))))));
 endef
+define dep_fetch_hex
+	$(call erlang,$(call dep_fetch_hexpm.erl,$(1),$(strip $(wordlist 2,$(words $(dep_$(1))),$(dep_$(1))))));
+endef
 
-$(foreach dep,$(BUILD_DEPS) $(DEPS),$(eval $(call dep_target,$(dep))))
+define dep_target_for_hex
+ifeq ($(word 1,$(dep_$(1))),hex)
+$(call dep_target,$(1))
+endif
+ifeq ($(word 1,$(dep_$(1))),hexpm)
+$(call dep_target,$(1))
+endif
+endef
+
+$(foreach dep,$(BUILD_DEPS) $(DEPS),$(eval $(call dep_target_for_hex,$(dep))))
 
