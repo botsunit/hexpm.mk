@@ -233,8 +233,9 @@ define dep_fetch_hexpm.erl
 	halt().
 endef
 
-# Hex only has a package version. No need to look in the Erlang.mk packages.
 define dep_fetch_hexpm
 	$(call erlang,$(call dep_fetch_hexpm.erl,$(1),$(strip $(wordlist 2,$(words $(dep_$(1))),$(dep_$(1))))));
 endef
+
+$(foreach dep,$(BUILD_DEPS) $(DEPS),$(eval $(call dep_target,$(dep))))
 

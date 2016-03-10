@@ -11,8 +11,8 @@ dep_mix.mk = git https://github.com/botsunit/mix.mk.git master
 DEPS = cowboy jsx
 dep_jsx = hexpm ~> 2.6.0
 
-include ../plugins.mk
 include erlang.mk
+include ../plugins.mk
 
 dev: deps app
 	@erl -pa ebin include deps/*/ebin deps/*/include
