@@ -1,3 +1,7 @@
+# HEX_URL ?= https://s3.amazonaws.com/s3.hex.pm
+# HEX_URL ?= http://s3.hex.pm.global.prod.fastly.net
+HEX_URL ?= https://hexpmrepo.global.ssl.fastly.net
+
 define dep_fetch_hexpm.erl
 	FunToInteger = fun
 			([]) -> nil;
@@ -223,7 +227,7 @@ define dep_fetch_hexpm.erl
 			binary_to_list(Version) 
 		end, Releases),
 	Vsn = FunExpected(Vsns, "$(2)", FunMaxVersion),
-	PackageURL = "https://s3.amazonaws.com/s3.hex.pm/tarballs/$(1)-" ++ Vsn ++ ".tar",
+	PackageURL = "$(HEX_URL)/tarballs/$(1)-" ++ Vsn ++ ".tar",
 	{ok, {{_, 200, _}, _, PkgBody}} = httpc:request(get,
 		{PackageURL, []},
 		[], [{body_format, binary}]),
