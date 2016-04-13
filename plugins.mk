@@ -1,6 +1,65 @@
 # HEX_URL ?= https://s3.amazonaws.com/s3.hex.pm
 # HEX_URL ?= http://s3.hex.pm.global.prod.fastly.net
 HEX_URL ?= https://hexpmrepo.global.ssl.fastly.net
+HEX_REGISTRY ?= registry.ets.gz
+HEX_PATH ?= $(HOME)/.hex
+HEX_REGISTRY_FILE = $(HEX_PATH)/$(HEX_REGISTRY)
+HEX_REGISTRY_URL = $(HEX_URL)/$(HEX_REGISTRY)
+
+ifeq ($(shell which gunzip 2>/dev/null | wc -l), 1)
+define hex_gunzip
+	gunzip -c $(2) > $(1)
+endef
+else
+define hex_gunzip.erl
+	{ok, Data} = file:read_file("$(1)"),
+	Unzipped = zlib:gunzip(Data),
+	ok = file:write_file("$(2)", Unzipped),
+	halt().
+endef
+
+define hex_gunzip
+	$(call erlang,$(call hex_gunzip.erl,$(call core_native_path,$1),$(call core_native_path,$2)))
+endef
+endif
+
+hex-update: hex-clean $(basename $(HEX_REGISTRY_FILE))
+
+hex-clean:
+	$(verbose) rm -f $(HEX_REGISTRY_FILE)
+	$(verbose) rm -f $(basename $(HEX_REGISTRY_FILE))
+
+define hex_search.erl
+	{ok, R} = ets:file2tab("$(basename $(HEX_REGISTRY_FILE))"),
+	case ets:lookup(R, <<"$(1)">>) of
+		[{_,[Releases]}] ->
+			Vsns = lists:map(fun erlang:binary_to_list/1, Releases),
+			io:format("~s: ~p~n", ["$(1)", Vsns]);
+		_ ->
+		  io:format("~n!! Package $(1) not found. Try to update the package index.~n")
+	end,
+	halt().
+endef
+
+define hex_search
+	$(verbose) $(call erlang,$(call hex_search.erl,$(1)))
+endef
+
+ifdef p
+hex-search: $(basename $(HEX_REGISTRY_FILE))
+	$(call hex_search,$(p))
+else
+hex-search:
+	$(verbose) printf "%s\n" "" \
+		"ERR Missing package name" 
+endif
+
+
+$(basename $(HEX_REGISTRY_FILE)):
+	$(verbose) mkdir -p $(HEX_PATH)
+	$(verbose) mkdir -p $(HEX_PATH)/packages
+	$(verbose) $(call core_http_get,$(HEX_REGISTRY_FILE),$(HEX_REGISTRY_URL))
+	$(gen_verbose) $(call hex_gunzip,$(basename $(HEX_REGISTRY_FILE)),$(HEX_REGISTRY_FILE))
 
 define dep_fetch_hexpm.erl
 	FunToInteger = fun
@@ -218,20 +277,31 @@ define dep_fetch_hexpm.erl
 		end,
 	ssl:start(),
 	inets:start(),
-	InfoURL = "https://hex.pm/api/packages/$(1)",
-	{ok, {{_, 200, _}, _, Body}} = httpc:request(get, 
-		{InfoURL, [{"Accept", "application/vnd.hex+erlang"}]}, 
-		[], [{body_format, binary}]),
-	#{<<"releases">> := Releases} = binary_to_term(Body),
-	Vsns = lists:map(fun(#{<<"version">> := Version}) -> 
-			binary_to_list(Version) 
-		end, Releases),
+	case filelib:is_file("$(HEX_REGISTRY_FILE)") of
+		true -> ok;
+		false ->
+			ok = filelib:ensure_dir("$(HEX_REGISTRY_FILE)"),
+				{ok, {{_, 200, _}, _, IdxBody}} = httpc:request(get, {"$(HEX_REGISTRY_URL)", []}, 
+				                                                [], [{body_format, binary}]),
+				ok = file:write_file("$(HEX_REGISTRY_FILE)", IdxBody),
+				{ok, Data} = file:read_file("$(HEX_REGISTRY_FILE)"),
+				Unzipped = zlib:gunzip(Data),
+				ok = file:write_file("$(basename $(HEX_REGISTRY_FILE))", Unzipped)
+	end,
+	{ok, R} = ets:file2tab("$(basename $(HEX_REGISTRY_FILE))"),
+	[{_,[Releases]}] = ets:lookup(R, <<"$(1)">>),
+	Vsns = lists:map(fun erlang:binary_to_list/1, Releases),
 	Vsn = FunExpected(Vsns, "$(2)", FunMaxVersion),
-	PackageURL = "$(HEX_URL)/tarballs/$(1)-" ++ Vsn ++ ".tar",
-	{ok, {{_, 200, _}, _, PkgBody}} = httpc:request(get,
-		{PackageURL, []},
-		[], [{body_format, binary}]),
-	{ok, Files} = erl_tar:extract({binary, PkgBody}, [memory]),
+	PackageFile = "$(HEX_PATH)/packages/$(1)-" ++ Vsn ++ ".tar",
+	ok = filelib:ensure_dir(PackageFile),
+	case filelib:is_file(PackageFile) of
+		true -> ok;
+		false ->
+			PackageURL = "$(HEX_URL)/tarballs/$(1)-" ++ Vsn ++ ".tar",
+			{ok, {{_, 200, _}, _, PkgBody}} = httpc:request(get, {PackageURL, []}, [], [{body_format, binary}]),
+			ok = file:write_file(PackageFile, PkgBody)
+	end,
+	{ok, Files} = erl_tar:extract(PackageFile, [memory]),
 	{_, Source} = lists:keyfind("contents.tar.gz", 1, Files),
 	ok = erl_tar:extract({binary, Source}, [{cwd, "$(call core_native_path,$(DEPS_DIR)/$1)"}, compressed]),
 	halt().
@@ -254,4 +324,12 @@ endif
 endef
 
 $(foreach dep,$(BUILD_DEPS) $(DEPS),$(eval $(call dep_target_for_hex,$(dep))))
+
+## Help
+
+help::
+	$(verbose) printf "%s\n" "" \
+		"Hex.pm targets:" \
+		"  hex-update           Updates the package index." \
+		"  hex-search p=...     Search a package in the package index."
 

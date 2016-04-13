@@ -22,6 +22,15 @@ dep_jsx = hex ~> 2.6.0
 include erlang.mk
 ```
 
+> If the package index does not exist, hexpm.mk will create it. But if it exist, it's up to you to update it.
+
+## Targets
+
+*hexpm.mk* add two targets :
+
+* `hex-update` : Updates the package index.
+* `hex-search p=...` : Search a package in the package index.
+
 ## Licence
 
 Copyright (c) 2016, Bots Unit<br />
