@@ -14,7 +14,7 @@ PROJECT = test
 DEP_PLUGINS = hexpm.mk
 BUILD_DEPS = hexpm.mk
 
-dep_hexpm.mk = git https://github.com/botsunit/mix.mk.git master
+dep_hexpm.mk = git https://github.com/botsunit/hexpm.mk.git master
 
 DEPS = jsx
 dep_jsx = hex ~> 2.6.0
