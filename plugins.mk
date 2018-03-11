@@ -1,6 +1,7 @@
 # HEX_URL ?= https://s3.amazonaws.com/s3.hex.pm
 # HEX_URL ?= http://s3.hex.pm.global.prod.fastly.net
-HEX_URL ?= https://hexpmrepo.global.ssl.fastly.net
+# HEX_URL ?= https://hexpmrepo.global.ssl.fastly.net
+HEX_URL ?= https://repo.hex.pm
 HEX_REGISTRY ?= registry.ets.gz
 HEX_PATH ?= $(HOME)/.hex
 HEX_REGISTRY_FILE = $(HEX_PATH)/$(HEX_REGISTRY)
